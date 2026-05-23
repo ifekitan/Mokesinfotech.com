@@ -21,8 +21,8 @@
 >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav class="flex gap-0 overflow-x-auto scrollbar-none">
-            @foreach([['custom','Custom Software'],['saas','SaaS Products'],['consulting','IT Consulting'],['advisory','IT Advisory']] as [$id,$label])
-            <a href="#{{ $id }}-software" @click="active = '{{ $id }}'"
+            @foreach([['custom','custom-software','Custom Software'],['saas','saas','SaaS Products'],['consulting','consulting','IT Consulting'],['advisory','advisory','IT Advisory']] as [$id,$anchor,$label])
+            <a href="#{{ $anchor }}" @click="active = '{{ $id }}'"
                :class="active === '{{ $id }}' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-800'"
                class="shrink-0 px-5 py-4 text-sm font-semibold border-b-2 transition-colors">
                 {{ $label }}

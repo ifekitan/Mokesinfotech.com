@@ -68,6 +68,8 @@ class PageController extends Controller
                     'role'     => $member->role,
                     'bio'      => $member->bio,
                     'email'    => $member->email,
+                    'skills'   => $member->skills ?? [],
+                    'tools'    => $member->tools ?? [],
                     'initials' => $initials,
                     'color'    => self::$teamColors[$idx % count(self::$teamColors)],
                 ];

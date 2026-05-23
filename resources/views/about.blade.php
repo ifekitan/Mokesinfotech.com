@@ -108,7 +108,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             @foreach($team as $member)
-            <div class="card p-7 group">
+            <div class="card p-7 group flex flex-col">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="w-14 h-14 {{ $member['color'] }} rounded-2xl flex items-center justify-center text-white text-lg font-bold shrink-0 group-hover:scale-110 transition-transform">
                         {{ $member['initials'] }}
@@ -118,11 +118,35 @@
                         <p class="text-brand-600 text-sm font-medium">{{ $member['role'] }}</p>
                     </div>
                 </div>
+
                 @if($member['bio'])
-                <p class="text-gray-500 text-sm leading-relaxed">{{ $member['bio'] }}</p>
+                <p class="text-gray-500 text-sm leading-relaxed mb-4">{{ $member['bio'] }}</p>
                 @endif
+
+                @if(!empty($member['skills']))
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Technical Skills</p>
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach($member['skills'] as $skill)
+                        <span class="bg-brand-50 text-brand-700 text-xs font-medium px-2 py-0.5 rounded-full">{{ $skill }}</span>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                @if(!empty($member['tools']))
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Tools</p>
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach($member['tools'] as $tool)
+                        <span class="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ $tool }}</span>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
                 @if($member['email'])
-                <a href="mailto:{{ $member['email'] }}" class="inline-flex items-center gap-1 mt-3 text-xs text-gray-400 hover:text-brand-600 transition-colors">
+                <a href="mailto:{{ $member['email'] }}" class="inline-flex items-center gap-1 mt-auto pt-3 text-xs text-gray-400 hover:text-brand-600 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     {{ $member['email'] }}
                 </a>

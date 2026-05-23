@@ -32,7 +32,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Phone <span class="text-gray-400 font-normal">(optional)</span></label>
-                <input wire:model="phone" type="tel" placeholder="+44 7700 900000"
+                <input wire:model="phone" type="tel" placeholder="+234 702 000 0000"
                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition">
             </div>
             <div>
