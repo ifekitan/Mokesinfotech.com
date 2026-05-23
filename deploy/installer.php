@@ -196,11 +196,43 @@ $step = $_POST['step'] ?? 'form';
   $srcDir = rtrim($extracted, '/');
   rcopy($srcDir, $appRoot);
   rrmdir($extractTo);
-  if (!is_dir($appRoot . '/vendor')) {
-      fail('App copy failed — vendor directory missing.');
+  if (!is_dir($appRoot . '/app')) {
+      fail('App copy failed — app directory missing after copy.');
       echo '</div></div></body></html>'; exit;
   }
   ok('App files in place');
+
+  // ── Step 4b: Run composer install ─────────────────────────────────────
+  info('Running composer install (this may take 1–2 minutes)…');
+  $composerPaths = [
+      '/usr/local/bin/composer',
+      '/usr/bin/composer',
+      trim((string) shell_exec('which composer 2>/dev/null')),
+  ];
+  $composerBin = null;
+  foreach ($composerPaths as $p) {
+      if ($p && file_exists($p)) { $composerBin = $p; break; }
+  }
+
+  if (!$composerBin) {
+      fail('Composer not found. Install dependencies manually via SSH: <code>composer install --no-dev</code>');
+      echo '</div></div></body></html>'; exit;
+  }
+
+  $composerOut = [];
+  $composerExit = 0;
+  exec(
+      "cd " . escapeshellarg($appRoot) .
+      " && {$composerBin} install --no-dev --optimize-autoloader --no-interaction 2>&1",
+      $composerOut,
+      $composerExit
+  );
+  $composerText = implode("\n", array_slice($composerOut, -5)); // last 5 lines
+  if ($composerExit !== 0) {
+      fail('composer install failed:<br><pre>' . h($composerText) . '</pre>');
+      echo '</div></div></body></html>'; exit;
+  }
+  ok('Dependencies installed');
 
   // ── Step 5: Move public assets to public_html ─────────────────────────
   info('Copying public assets to public_html…');
