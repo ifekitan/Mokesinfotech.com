@@ -116,8 +116,9 @@ $step = $_POST['step'] ?? 'form';
   }
 
   // ── Step 2: Download repo zip ─────────────────────────────────────────
+  // Use home dir for zip/extract — avoids cross-filesystem rename() failures
   info('Downloading repository from GitHub…');
-  $zipPath = sys_get_temp_dir() . '/mokesinfotech_' . time() . '.zip';
+  $zipPath = $homeDir . '/mokesinfotech_install_' . time() . '.zip';
 
   $ch = curl_init(REPO_ZIP);
   curl_setopt_array($ch, [
@@ -138,7 +139,7 @@ $step = $_POST['step'] ?? 'form';
   file_put_contents($zipPath, $zipData);
   ok('Downloaded ' . number_format(strlen($zipData) / 1024 / 1024, 1) . ' MB');
 
-  // ── Step 3: Extract zip ───────────────────────────────────────────────
+  // ── Step 3: Extract zip (into home dir, same filesystem as target) ────
   info('Extracting to ' . h($homeDir) . '…');
   $zip = new ZipArchive();
   if ($zip->open($zipPath) !== true) {
@@ -146,7 +147,7 @@ $step = $_POST['step'] ?? 'form';
       echo '</div></div></body></html>'; exit;
   }
 
-  $extractTo = sys_get_temp_dir() . '/mokesinfotech_extract_' . time();
+  $extractTo = $homeDir . '/mokesinfotech_extract_' . time();
   mkdir($extractTo, 0755, true);
   $zip->extractTo($extractTo);
   $zip->close();
@@ -160,15 +161,45 @@ $step = $_POST['step'] ?? 'form';
   }
   ok('Extracted successfully');
 
-  // ── Step 4: Move app into place ───────────────────────────────────────
-  info("Moving app to {$appRoot}…");
-  if (is_dir($appRoot)) {
-      // Back up existing
-      rename($appRoot, $appRoot . '_backup_' . date('YmdHis'));
-      info('Existing install backed up');
+  // ── Helper: recursive directory copy (works across filesystems) ───────
+  function rcopy(string $src, string $dst): void {
+      mkdir($dst, 0755, true);
+      $iter = new RecursiveIteratorIterator(
+          new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
+          RecursiveIteratorIterator::SELF_FIRST
+      );
+      foreach ($iter as $f) {
+          $target = $dst . '/' . $iter->getSubPathname();
+          if ($f->isDir()) { @mkdir($target, 0755, true); }
+          else { copy($f->getPathname(), $target); }
+      }
   }
-  rename(rtrim($extracted, '/'), $appRoot);
-  rmdir($extractTo);
+
+  function rrmdir(string $dir): void {
+      $iter = new RecursiveIteratorIterator(
+          new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+          RecursiveIteratorIterator::CHILD_FIRST
+      );
+      foreach ($iter as $f) {
+          $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+      }
+      rmdir($dir);
+  }
+
+  // ── Step 4: Copy app into place ───────────────────────────────────────
+  info("Installing app to {$appRoot}…");
+  if (is_dir($appRoot)) {
+      $backupName = $appRoot . '_backup_' . date('YmdHis');
+      rename($appRoot, $backupName); // same filesystem — safe
+      info('Existing install backed up to ' . h(basename($backupName)));
+  }
+  $srcDir = rtrim($extracted, '/');
+  rcopy($srcDir, $appRoot);
+  rrmdir($extractTo);
+  if (!is_dir($appRoot . '/vendor')) {
+      fail('App copy failed — vendor directory missing.');
+      echo '</div></div></body></html>'; exit;
+  }
   ok('App files in place');
 
   // ── Step 5: Move public assets to public_html ─────────────────────────
