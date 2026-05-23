@@ -204,32 +204,54 @@ $step = $_POST['step'] ?? 'form';
 
   // ── Step 4b: Run composer install ─────────────────────────────────────
   info('Running composer install (this may take 1–2 minutes)…');
-  $composerPaths = [
-      '/usr/local/bin/composer',
-      '/usr/bin/composer',
-      trim((string) shell_exec('which composer 2>/dev/null')),
-  ];
-  $composerBin = null;
-  foreach ($composerPaths as $p) {
-      if ($p && file_exists($p)) { $composerBin = $p; break; }
-  }
 
-  if (!$composerBin) {
-      fail('Composer not found. Install dependencies manually via SSH: <code>composer install --no-dev</code>');
+  // Find PHP CLI
+  $phpBin = null;
+  foreach (['/usr/local/bin/php', '/usr/bin/php', 'php'] as $p) {
+      exec("'{$p}' -r 'echo 1;' 2>/dev/null", $o, $rc);
+      if ($rc === 0) { $phpBin = $p; break; }
+      $o = [];
+  }
+  if (!$phpBin) {
+      fail('PHP CLI not found. Cannot run Composer.');
       echo '</div></div></body></html>'; exit;
   }
+  info("Using PHP: {$phpBin}");
 
-  $composerOut = [];
+  // Find or download composer
+  $composerPhar = $homeDir . '/composer.phar';
+  $composerCmd  = null;
+
+  foreach (['/usr/local/bin/composer', '/usr/bin/composer'] as $p) {
+      if (file_exists($p)) { $composerCmd = escapeshellarg($p); break; }
+  }
+
+  if (!$composerCmd) {
+      if (!file_exists($composerPhar)) {
+          info('Downloading composer.phar…');
+          $phar = @file_get_contents('https://getcomposer.org/composer-stable.phar');
+          if (!$phar) {
+              fail('Could not download composer.phar. Check allow_url_fopen or try again.');
+              echo '</div></div></body></html>'; exit;
+          }
+          file_put_contents($composerPhar, $phar);
+          ok('composer.phar downloaded');
+      }
+      $composerCmd = escapeshellarg($phpBin) . ' ' . escapeshellarg($composerPhar);
+  }
+
+  $composerOut  = [];
   $composerExit = 0;
   exec(
       "cd " . escapeshellarg($appRoot) .
-      " && {$composerBin} install --no-dev --optimize-autoloader --no-interaction 2>&1",
+      " && COMPOSER_HOME=" . escapeshellarg($homeDir . '/.composer') .
+      " {$composerCmd} install --no-dev --optimize-autoloader --no-interaction 2>&1",
       $composerOut,
       $composerExit
   );
-  $composerText = implode("\n", array_slice($composerOut, -5)); // last 5 lines
+  $lastLines = implode("\n", array_slice($composerOut, -8));
   if ($composerExit !== 0) {
-      fail('composer install failed:<br><pre>' . h($composerText) . '</pre>');
+      fail('composer install failed:<br><pre style="font-size:.7rem">' . h($lastLines) . '</pre>');
       echo '</div></div></body></html>'; exit;
   }
   ok('Dependencies installed');
