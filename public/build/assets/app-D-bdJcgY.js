@@ -1,0 +1,1 @@
+document.addEventListener(`alpine:init`,()=>{Alpine.data(`counter`,(e,t=2e3)=>({value:0,start(){let n=e/(t/16),r=()=>{this.value=Math.min(this.value+n,e),this.value<e?requestAnimationFrame(r):this.value=e},i=new IntersectionObserver(([e])=>{e.isIntersecting&&(r(),i.disconnect())});i.observe(this.$el)},get display(){return Math.round(this.value).toLocaleString()}}))});
