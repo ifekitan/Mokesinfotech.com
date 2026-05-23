@@ -87,6 +87,9 @@ $step = $_POST['step'] ?? 'form';
 
 <?php elseif ($step === 'install'):
 
+  @set_time_limit(600);
+  @ini_set('max_execution_time', 600);
+
   if ($token !== INSTALLER_TOKEN) {
       echo "<p class='err'>Invalid token. Refresh and try again.</p></div></body></html>";
       exit;
@@ -162,8 +165,9 @@ $step = $_POST['step'] ?? 'form';
   ok('Extracted successfully');
 
   // ── Helper: recursive directory copy (works across filesystems) ───────
-  function rcopy(string $src, string $dst): void {
+  function rcopy(string $src, string $dst): int {
       mkdir($dst, 0755, true);
+      $count = 0;
       $iter = new RecursiveIteratorIterator(
           new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
           RecursiveIteratorIterator::SELF_FIRST
@@ -171,8 +175,9 @@ $step = $_POST['step'] ?? 'form';
       foreach ($iter as $f) {
           $target = $dst . '/' . $iter->getSubPathname();
           if ($f->isDir()) { @mkdir($target, 0755, true); }
-          else { copy($f->getPathname(), $target); }
+          else { if (copy($f->getPathname(), $target)) $count++; }
       }
+      return $count;
   }
 
   function rrmdir(string $dir): void {
@@ -193,11 +198,20 @@ $step = $_POST['step'] ?? 'form';
       rename($appRoot, $backupName); // same filesystem — safe
       info('Existing install backed up to ' . h(basename($backupName)));
   }
-  $srcDir = rtrim($extracted, '/');
-  rcopy($srcDir, $appRoot);
+  // Disk space check — app needs ~50 MB free
+  $freeMB = round(disk_free_space($homeDir) / 1024 / 1024);
+  info("Disk free: {$freeMB} MB");
+  if ($freeMB < 50) {
+      fail("Only {$freeMB} MB free. Delete old backup directories in your home folder and retry.");
+      echo '</div></div></body></html>'; exit;
+  }
+
+  $srcDir   = rtrim($extracted, '/');
+  $copied   = rcopy($srcDir, $appRoot);
   rrmdir($extractTo);
+  info("Files copied: {$copied}");
   if (!is_dir($appRoot . '/app')) {
-      fail('App copy failed — app directory missing after copy.');
+      fail("App copy failed ({$copied} files copied) — app/ directory missing. Free up disk space and retry.");
       echo '</div></div></body></html>'; exit;
   }
   ok('App files in place');
