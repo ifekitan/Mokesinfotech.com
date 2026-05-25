@@ -289,28 +289,43 @@ ENV;
   }
   ok('Storage directories ready');
 
-  // ── Step 7: Bootstrap Laravel + artisan commands ──────────────────────
-  info('Bootstrapping Laravel from ' . h($appRoot) . '…');
+  // ── Step 7: Run artisan via PHP CLI (avoids web-context conflicts) ──────
   if (function_exists('opcache_reset')) opcache_reset();
-
-  // Delete stale caches before bootstrapping
   foreach (glob($appRoot . '/bootstrap/cache/*.php') as $f) { @unlink($f); }
 
-  require $appRoot . '/vendor/autoload.php';
-  $app    = require_once $appRoot . '/bootstrap/app.php';
-  $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-
-  foreach ([
-      ['migrate',      ['--force' => true, '--seed' => true]],
-      ['config:cache', []],
-      ['route:cache',  []],
-      ['view:cache',   []],
-  ] as [$cmd, $args]) {
-      info("php artisan {$cmd}");
-      $exit = $kernel->call($cmd, $args);
-      $out  = trim($kernel->output());
-      if ($out) echo '<span style="color:#d1d5db;font-size:.75rem">' . h($out) . '</span>' . "\n";
-      $exit === 0 ? ok($cmd) : fail("{$cmd} exited {$exit}");
+  // Find PHP CLI binary
+  $phpBin = null;
+  foreach (['/usr/local/bin/php', '/usr/bin/php81', '/usr/bin/php', 'php'] as $p) {
+      $o = []; $rc = 0;
+      exec(escapeshellarg($p) . ' -r "echo 1;" 2>/dev/null', $o, $rc);
+      if ($rc === 0 && implode('', $o) === '1') { $phpBin = $p; break; }
+  }
+  if (!$phpBin) {
+      fail('PHP CLI binary not found — skipping artisan commands. Run them manually via SSH.');
+  } else {
+      info("PHP CLI: {$phpBin}");
+      $artisan = escapeshellarg($appRoot . '/artisan');
+      $cmds = [
+          'migrate --force --seed',
+          'config:clear',
+          'config:cache',
+          'route:clear',
+          'route:cache',
+          'view:clear',
+          'view:cache',
+      ];
+      foreach ($cmds as $cmd) {
+          info("php artisan {$cmd}");
+          $out = []; $exit = 0;
+          exec(
+              escapeshellarg($phpBin) . " {$artisan} {$cmd} 2>&1",
+              $out, $exit
+          );
+          $text = trim(implode("\n", $out));
+          if ($text) echo '<span style="color:#d1d5db;font-size:.75rem">' . h($text) . '</span>' . "\n";
+          $exit === 0 ? ok($cmd) : fail("{$cmd} exited {$exit}");
+          flush();
+      }
   }
 
   // ── Step 8: Write public_html/index.php ───────────────────────────────
