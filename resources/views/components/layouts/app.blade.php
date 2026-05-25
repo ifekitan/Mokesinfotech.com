@@ -17,30 +17,30 @@
 <header
     x-data="{ open: false, scrolled: false }"
     x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 20 })"
-    :class="scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-transparent'"
-    class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+    :class="scrolled ? 'shadow-lg' : ''"
+    class="fixed inset-x-0 top-0 z-50 bg-navy-600 transition-all duration-300"
 >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 md:h-20">
 
             {{-- Logo --}}
-            <a href="{{ route('home') }}" class="flex items-center gap-2 group">
-                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-sm group-hover:bg-brand-700 transition-colors">M</div>
-                <span class="font-bold text-lg text-gray-900">Mokes<span class="text-brand-600">Infotech</span></span>
+            <a href="{{ route('home') }}" class="flex items-center gap-3 group">
+                <x-logo-icon class="w-10 h-10 shrink-0" />
+                <span class="font-bold text-lg text-white">Mokes<span class="text-brand-400">Infotech</span></span>
             </a>
 
             {{-- Desktop Nav --}}
             <nav class="hidden md:flex items-center gap-8">
                 @foreach([['home','Home'],['services','Services'],['portfolio','Portfolio'],['about','About'],['blog','Blog']] as [$r,$l])
                 <a href="{{ route($r) }}"
-                   class="text-sm font-medium {{ request()->routeIs($r) ? 'text-brand-600' : 'text-gray-600 hover:text-gray-900' }} transition-colors">
+                   class="text-sm font-medium {{ request()->routeIs($r) ? 'text-brand-400' : 'text-white/75 hover:text-white' }} transition-colors">
                     {{ $l }}
                 </a>
                 @endforeach
                 <a href="https://mokesbridge.mokesinfotech.com" target="_blank" rel="noopener noreferrer"
-                   class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                   class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
                     MokesBridge
-                    <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">LIVE</span>
+                    <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">LIVE</span>
                 </a>
             </nav>
 
@@ -49,7 +49,7 @@
                 <a href="{{ route('contact') }}" class="hidden md:inline-flex btn-primary text-sm py-2 px-5">
                     Get in Touch
                 </a>
-                <button @click="open = !open" class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                <button @click="open = !open" class="md:hidden p-2 rounded-lg text-white/75 hover:bg-navy-700">
                     <svg x-show="!open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg x-show="open"  class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -57,17 +57,17 @@
         </div>
 
         {{-- Mobile menu --}}
-        <div x-show="open" x-transition class="md:hidden border-t border-gray-100 py-4 space-y-1">
+        <div x-show="open" x-transition class="md:hidden border-t border-navy-500 bg-navy-700 py-4 space-y-1">
             @foreach([['home','Home'],['services','Services'],['portfolio','Portfolio'],['about','About'],['blog','Blog'],['contact','Contact']] as [$r,$l])
             <a href="{{ route($r) }}" @click="open = false"
-               class="block px-4 py-2 rounded-lg text-sm font-medium {{ request()->routeIs($r) ? 'bg-brand-50 text-brand-600' : 'text-gray-700 hover:bg-gray-50' }}">
+               class="block px-4 py-2 rounded-lg text-sm font-medium {{ request()->routeIs($r) ? 'bg-brand-500/20 text-brand-400' : 'text-white/80 hover:bg-navy-600' }}">
                 {{ $l }}
             </a>
             @endforeach
             <a href="https://mokesbridge.mokesinfotech.com" target="_blank" rel="noopener noreferrer" @click="open = false"
-               class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-emerald-600 hover:bg-emerald-50">
+               class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-emerald-400 hover:bg-navy-600">
                 MokesBridge
-                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">LIVE</span>
+                <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">LIVE</span>
             </a>
         </div>
     </div>
@@ -83,8 +83,8 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-gray-800">
             <div class="md:col-span-2">
-                <a href="{{ route('home') }}" class="flex items-center gap-2 mb-4">
-                    <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">M</div>
+                <a href="{{ route('home') }}" class="flex items-center gap-3 mb-4">
+                    <x-logo-icon class="w-10 h-10 shrink-0" />
                     <span class="font-bold text-lg text-white">Mokes<span class="text-brand-400">Infotech</span></span>
                 </a>
                 <p class="text-sm leading-relaxed max-w-xs mb-5">Custom software, SaaS platforms, and IT consulting — built for growth from Abuja, Nigeria.</p>

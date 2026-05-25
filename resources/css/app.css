@@ -9,17 +9,31 @@
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-brand-50: #eff6ff;
-    --color-brand-100: #dbeafe;
-    --color-brand-200: #bfdbfe;
-    --color-brand-300: #93c5fd;
-    --color-brand-400: #60a5fa;
-    --color-brand-500: #3b82f6;
-    --color-brand-600: #2563eb;
-    --color-brand-700: #1d4ed8;
-    --color-brand-800: #1e40af;
-    --color-brand-900: #1e3a8a;
-    --color-brand-950: #172554;
+    /* Primary – Coral Orange #FF5733 */
+    --color-brand-50:  #fff4f0;
+    --color-brand-100: #ffe5db;
+    --color-brand-200: #ffccbb;
+    --color-brand-300: #ffa888;
+    --color-brand-400: #ff7d55;
+    --color-brand-500: #ff5733;
+    --color-brand-600: #f03a10;
+    --color-brand-700: #ca2a09;
+    --color-brand-800: #a3230b;
+    --color-brand-900: #87220e;
+    --color-brand-950: #490e04;
+
+    /* Secondary – Dark Slate #2C3E50 */
+    --color-navy-50:  #f1f5f8;
+    --color-navy-100: #dde6ee;
+    --color-navy-200: #b8cedd;
+    --color-navy-300: #88afc5;
+    --color-navy-400: #5488a8;
+    --color-navy-500: #3d6485;
+    --color-navy-600: #2c3e50;
+    --color-navy-700: #1e2d3a;
+    --color-navy-800: #141e27;
+    --color-navy-900: #0d1620;
+    --color-navy-950: #070d15;
 }
 
 @layer base {
@@ -29,10 +43,10 @@
 
 @layer components {
     .btn-primary {
-        @apply inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+        @apply inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
     }
     .btn-outline {
-        @apply inline-flex items-center gap-2 border-2 border-brand-600 text-brand-600 hover:bg-brand-600 hover:text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+        @apply inline-flex items-center gap-2 border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200;
     }
     .section-title {
         @apply text-3xl md:text-4xl font-bold text-gray-900 leading-tight;
