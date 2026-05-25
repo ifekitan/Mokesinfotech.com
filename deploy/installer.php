@@ -208,8 +208,8 @@ $step = $_POST['step'] ?? 'form';
       }
   }
 
-  // Copy public assets (build/, .htaccess, favicon, robots)
-  foreach (['build', 'favicon.ico', 'robots.txt', '.htaccess'] as $item) {
+  // Copy public assets (build/, images/, .htaccess, favicon, robots)
+  foreach (['build', 'images', 'favicon.ico', 'robots.txt', '.htaccess'] as $item) {
       $src = $srcDir . '/public/' . $item;
       $dst = $publicHtml . '/' . $item;
       if (!file_exists($src)) continue;
