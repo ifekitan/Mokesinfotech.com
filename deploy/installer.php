@@ -1,31 +1,29 @@
 <?php
 /**
- * Mokes Infotech – Namecheap Shared Hosting Installer
- * ─────────────────────────────────────────────────────
+ * Mokes Infotech – Namecheap Shared Hosting Patcher
+ * ──────────────────────────────────────────────────
+ * Strategy: patch the existing Laravel install in the home directory.
+ * The vendor/ directory there is kept (avoiding composer install).
+ * Only app/, routes/, resources/, database/, config/ are replaced.
+ *
  * 1. Upload ONLY this file to public_html/installer.php
  * 2. Visit https://mokesinfotech.com/installer.php
  * 3. Fill in your DB credentials and click Install
  * 4. DELETE this file immediately after installation
  */
 
-define('REPO_ZIP', 'https://github.com/ifekitan/Mokesinfotech.com/archive/refs/heads/main.zip');
-define('APP_FOLDER', 'mokesinfotech');   // folder created one level above public_html
-define('INSTALLER_TOKEN', 'mokesinstall2026'); // change before uploading if desired
+define('REPO_ZIP',        'https://github.com/ifekitan/Mokesinfotech.com/archive/refs/heads/main.zip');
+define('INSTALLER_TOKEN', 'mokesinstall2026');
 
-// ── Security token ────────────────────────────────────────────────────────
-$token = $_POST['token'] ?? $_GET['token'] ?? '';
+$token      = $_POST['token'] ?? $_GET['token'] ?? '';
+$publicHtml = __DIR__;           // /home/mokejclh/public_html
+$appRoot    = dirname(__DIR__);  // /home/mokejclh  ← patch in place
 
-// ── Helpers ───────────────────────────────────────────────────────────────
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES); }
-function ok(string $msg): void { echo "<p class='ok'>✓ {$msg}</p>\n"; flush(); }
+function ok(string $msg): void  { echo "<p class='ok'>✓ {$msg}</p>\n"; flush(); }
 function fail(string $msg): void { echo "<p class='err'>✗ {$msg}</p>\n"; flush(); }
 function info(string $msg): void { echo "<p class='info'>→ {$msg}</p>\n"; flush(); }
 
-$publicHtml = __DIR__;                        // /home/user/public_html
-$homeDir    = dirname($publicHtml);           // /home/user
-$appRoot    = $homeDir . '/' . APP_FOLDER;    // /home/user/mokesinfotech
-
-// ── HTML shell ────────────────────────────────────────────────────────────
 $step = $_POST['step'] ?? 'form';
 ?>
 <!DOCTYPE html>
@@ -41,8 +39,8 @@ $step = $_POST['step'] ?? 'form';
   h1{font-size:1.5rem;font-weight:700;margin-bottom:.25rem}
   .sub{color:#6b7280;font-size:.875rem;margin-bottom:1.5rem}
   label{display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:.25rem;margin-top:1rem}
-  input,select{width:100%;padding:.625rem .875rem;border:1px solid #d1d5db;border-radius:8px;font-size:.875rem;outline:none}
-  input:focus,select:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+  input{width:100%;padding:.625rem .875rem;border:1px solid #d1d5db;border-radius:8px;font-size:.875rem;outline:none}
+  input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
   button{margin-top:1.5rem;width:100%;padding:.875rem;background:#7c3aed;color:#fff;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:1rem}
   button:hover{background:#6d28d9}
   .log{margin-top:1.5rem;background:#111827;color:#f9fafb;border-radius:8px;padding:1.25rem;font-family:monospace;font-size:.8rem;line-height:1.7}
@@ -54,7 +52,7 @@ $step = $_POST['step'] ?? 'form';
 <body>
 <div class="box">
   <h1>🚀 Mokes Infotech Installer</h1>
-  <p class="sub">Pulls the app from GitHub and configures it on this server</p>
+  <p class="sub">Patches the existing app with the latest code from GitHub</p>
 
 <?php if ($step === 'form'): ?>
   <div class="warn">⚠ Delete this file immediately after installation completes.</div>
@@ -62,18 +60,18 @@ $step = $_POST['step'] ?? 'form';
     <input type="hidden" name="step" value="install">
 
     <label>Installer token</label>
-    <input type="text" name="token" value="" placeholder="<?= INSTALLER_TOKEN ?>" required>
+    <input type="text" name="token" placeholder="<?= INSTALLER_TOKEN ?>" required>
 
     <hr style="margin:1.5rem 0;border-color:#e5e7eb">
-    <p style="font-size:.8rem;color:#6b7280;margin-bottom:.5rem">MySQL credentials (from cPanel → MySQL Databases)</p>
+    <p style="font-size:.8rem;color:#6b7280;margin-bottom:.5rem">MySQL credentials (cPanel → MySQL Databases)</p>
 
     <label>DB Host</label>
     <input type="text" name="db_host" value="localhost" required>
 
-    <label>DB Name <span style="font-weight:400;color:#6b7280">(e.g. mksinft_mokesinfotech)</span></label>
+    <label>DB Name</label>
     <input type="text" name="db_name" placeholder="cpaneluser_dbname" required>
 
-    <label>DB Username <span style="font-weight:400;color:#6b7280">(e.g. mksinft_dbuser)</span></label>
+    <label>DB Username</label>
     <input type="text" name="db_user" placeholder="cpaneluser_dbuser" required>
 
     <label>DB Password</label>
@@ -82,7 +80,7 @@ $step = $_POST['step'] ?? 'form';
     <label>Email password for info@mokesinfotech.com</label>
     <input type="password" name="mail_pass" placeholder="cPanel email password">
 
-    <button type="submit">▶ Install Now</button>
+    <button type="submit">▶ Patch &amp; Deploy Now</button>
   </form>
 
 <?php elseif ($step === 'install'):
@@ -91,210 +89,145 @@ $step = $_POST['step'] ?? 'form';
   @ini_set('max_execution_time', 600);
 
   if ($token !== INSTALLER_TOKEN) {
-      echo "<p class='err'>Invalid token. Refresh and try again.</p></div></body></html>";
-      exit;
+      echo "<p class='err'>Invalid token.</p></div></body></html>"; exit;
   }
 
-  $dbHost  = trim($_POST['db_host'] ?? 'localhost');
-  $dbName  = trim($_POST['db_name'] ?? '');
-  $dbUser  = trim($_POST['db_user'] ?? '');
-  $dbPass  = $_POST['db_pass'] ?? '';
-  $mailPass = $_POST['mail_pass'] ?? '';
+  $dbHost   = trim($_POST['db_host']  ?? 'localhost');
+  $dbName   = trim($_POST['db_name']  ?? '');
+  $dbUser   = trim($_POST['db_user']  ?? '');
+  $dbPass   = $_POST['db_pass']       ?? '';
+  $mailPass = $_POST['mail_pass']     ?? '';
 
   if (!$dbName || !$dbUser) {
-      echo "<p class='err'>DB name and user are required.</p></div></body></html>";
-      exit;
+      echo "<p class='err'>DB name and user are required.</p></div></body></html>"; exit;
   }
 
   echo '<div class="log">';
 
-  // ── Step 1: Test DB connection ────────────────────────────────────────
+  info("App root: {$appRoot}");
+  info("Vendor exists: " . (is_dir($appRoot . '/vendor') ? 'YES' : 'NO'));
+
+  // ── Step 1: Test DB connection ─────────────────────────────────────────
   info('Testing database connection…');
   try {
-      $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+      $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass,
+          [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
       ok('Database connection successful');
   } catch (Exception $e) {
       fail('DB connection failed: ' . h($e->getMessage()));
       echo '</div></div></body></html>'; exit;
   }
 
-  // ── Step 2: Download repo zip ─────────────────────────────────────────
-  // Use home dir for zip/extract — avoids cross-filesystem rename() failures
+  // ── Step 2: Download repo zip ──────────────────────────────────────────
   info('Downloading repository from GitHub…');
-  $zipPath = $homeDir . '/mokesinfotech_install_' . time() . '.zip';
+  $zipPath = $appRoot . '/mokesinfotech_patch_' . time() . '.zip';
 
   $ch = curl_init(REPO_ZIP);
   curl_setopt_array($ch, [
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_FOLLOWLOCATION => true,
-      CURLOPT_TIMEOUT => 120,
+      CURLOPT_TIMEOUT        => 120,
       CURLOPT_SSL_VERIFYPEER => true,
-      CURLOPT_USERAGENT => 'MokesInstaller/1.0',
+      CURLOPT_USERAGENT      => 'MokesInstaller/1.0',
   ]);
-  $zipData = curl_exec($ch);
+  $zipData  = curl_exec($ch);
   $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
   curl_close($ch);
 
   if (!$zipData || $httpCode !== 200) {
-      fail("Download failed (HTTP {$httpCode}). Check the repo is public.");
+      fail("Download failed (HTTP {$httpCode}).");
       echo '</div></div></body></html>'; exit;
   }
   file_put_contents($zipPath, $zipData);
   ok('Downloaded ' . number_format(strlen($zipData) / 1024 / 1024, 1) . ' MB');
 
-  // ── Step 3: Extract zip (into home dir, same filesystem as target) ────
-  info('Extracting to ' . h($homeDir) . '…');
+  // ── Step 3: Extract zip ────────────────────────────────────────────────
+  info('Extracting…');
   $zip = new ZipArchive();
   if ($zip->open($zipPath) !== true) {
       fail('Could not open zip archive.');
       echo '</div></div></body></html>'; exit;
   }
-
-  $extractTo = $homeDir . '/mokesinfotech_extract_' . time();
+  $extractTo = $appRoot . '/mokesinfotech_extract_' . time();
   mkdir($extractTo, 0755, true);
   $zip->extractTo($extractTo);
   $zip->close();
   unlink($zipPath);
 
-  // GitHub zips extract as RepoName-branch/
-  $extracted = glob($extractTo . '/*/')[0] ?? null;
-  if (!$extracted) {
+  $srcDir = rtrim(glob($extractTo . '/*/')[0] ?? '', '/');
+  if (!$srcDir || !is_dir($srcDir)) {
       fail('Could not find extracted folder.');
       echo '</div></div></body></html>'; exit;
   }
-  ok('Extracted successfully');
+  ok('Extracted to ' . h(basename($srcDir)));
 
-  // ── Helper: recursive directory copy (works across filesystems) ───────
-  function rcopy(string $src, string $dst): int {
-      mkdir($dst, 0755, true);
-      $count = 0;
+  // ── Step 4: Patch code directories (keep existing vendor) ─────────────
+  function rrmdir(string $dir): void {
+      if (!is_dir($dir)) return;
       $iter = new RecursiveIteratorIterator(
+          new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+          RecursiveIteratorIterator::CHILD_FIRST
+      );
+      foreach ($iter as $f) {
+          $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+      }
+      @rmdir($dir);
+  }
+
+  function rcopy(string $src, string $dst): int {
+      @mkdir($dst, 0755, true);
+      $count = 0;
+      $iter  = new RecursiveIteratorIterator(
           new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
           RecursiveIteratorIterator::SELF_FIRST
       );
       foreach ($iter as $f) {
           $target = $dst . '/' . $iter->getSubPathname();
           if ($f->isDir()) { @mkdir($target, 0755, true); }
-          else { if (copy($f->getPathname(), $target)) $count++; }
+          else { if (@copy($f->getPathname(), $target)) $count++; }
       }
       return $count;
   }
 
-  function rrmdir(string $dir): void {
-      $iter = new RecursiveIteratorIterator(
-          new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
-          RecursiveIteratorIterator::CHILD_FIRST
-      );
-      foreach ($iter as $f) {
-          $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+  // Only replace these directories — leave vendor, storage, bootstrap/cache alone
+  $patchDirs = ['app', 'routes', 'resources', 'database', 'config', 'bootstrap/app.php'];
+  $totalCopied = 0;
+  foreach ($patchDirs as $item) {
+      $src = $srcDir . '/' . $item;
+      $dst = $appRoot . '/' . $item;
+      if (!file_exists($src)) { info("Skipping {$item} (not in zip)"); continue; }
+      if (is_dir($src)) {
+          rrmdir($dst);
+          $n = rcopy($src, $dst);
+          $totalCopied += $n;
+          info("Patched {$item}/ ({$n} files)");
+      } else {
+          @copy($src, $dst);
+          $totalCopied++;
+          info("Patched {$item}");
       }
-      rmdir($dir);
   }
 
-  // ── Step 4: Copy app into place ───────────────────────────────────────
-  info("Installing app to {$appRoot}…");
-  if (is_dir($appRoot)) {
-      $backupName = $appRoot . '_backup_' . date('YmdHis');
-      rename($appRoot, $backupName); // same filesystem — safe
-      info('Existing install backed up to ' . h(basename($backupName)));
-  }
-  // Disk space check — app needs ~50 MB free
-  $freeMB = round(disk_free_space($homeDir) / 1024 / 1024);
-  info("Disk free: {$freeMB} MB");
-  if ($freeMB < 50) {
-      fail("Only {$freeMB} MB free. Delete old backup directories in your home folder and retry.");
-      echo '</div></div></body></html>'; exit;
-  }
-
-  $srcDir   = rtrim($extracted, '/');
-  $copied   = rcopy($srcDir, $appRoot);
-  rrmdir($extractTo);
-  info("Files copied: {$copied}");
-  if (!is_dir($appRoot . '/app')) {
-      fail("App copy failed ({$copied} files copied) — app/ directory missing. Free up disk space and retry.");
-      echo '</div></div></body></html>'; exit;
-  }
-  ok('App files in place');
-
-  // ── Step 4b: Run composer install ─────────────────────────────────────
-  info('Running composer install (this may take 1–2 minutes)…');
-
-  // Find PHP CLI
-  $phpBin = null;
-  foreach (['/usr/local/bin/php', '/usr/bin/php', 'php'] as $p) {
-      exec("'{$p}' -r 'echo 1;' 2>/dev/null", $o, $rc);
-      if ($rc === 0) { $phpBin = $p; break; }
-      $o = [];
-  }
-  if (!$phpBin) {
-      fail('PHP CLI not found. Cannot run Composer.');
-      echo '</div></div></body></html>'; exit;
-  }
-  info("Using PHP: {$phpBin}");
-
-  // Find or download composer
-  $composerPhar = $homeDir . '/composer.phar';
-  $composerCmd  = null;
-
-  foreach (['/usr/local/bin/composer', '/usr/bin/composer'] as $p) {
-      if (file_exists($p)) { $composerCmd = escapeshellarg($p); break; }
-  }
-
-  if (!$composerCmd) {
-      if (!file_exists($composerPhar)) {
-          info('Downloading composer.phar…');
-          $phar = @file_get_contents('https://getcomposer.org/composer-stable.phar');
-          if (!$phar) {
-              fail('Could not download composer.phar. Check allow_url_fopen or try again.');
-              echo '</div></div></body></html>'; exit;
-          }
-          file_put_contents($composerPhar, $phar);
-          ok('composer.phar downloaded');
-      }
-      $composerCmd = escapeshellarg($phpBin) . ' ' . escapeshellarg($composerPhar);
-  }
-
-  $composerOut  = [];
-  $composerExit = 0;
-  exec(
-      "cd " . escapeshellarg($appRoot) .
-      " && COMPOSER_HOME=" . escapeshellarg($homeDir . '/.composer') .
-      " {$composerCmd} install --no-dev --optimize-autoloader --no-interaction 2>&1",
-      $composerOut,
-      $composerExit
-  );
-  $lastLines = implode("\n", array_slice($composerOut, -8));
-  if ($composerExit !== 0) {
-      fail('composer install failed:<br><pre style="font-size:.7rem">' . h($lastLines) . '</pre>');
-      echo '</div></div></body></html>'; exit;
-  }
-  ok('Dependencies installed');
-
-  // ── Step 5: Move public assets to public_html ─────────────────────────
-  info('Copying public assets to public_html…');
-  $publicSrc = $appRoot . '/public';
+  // Copy public assets (build/, .htaccess, favicon, robots)
   foreach (['build', 'favicon.ico', 'robots.txt', '.htaccess'] as $item) {
-      $src = $publicSrc . '/' . $item;
+      $src = $srcDir . '/public/' . $item;
       $dst = $publicHtml . '/' . $item;
       if (!file_exists($src)) continue;
       if (is_dir($src)) {
-          // Recursive copy for build/
-          $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
-          foreach ($iter as $f) {
-              $target = $dst . '/' . $iter->getSubPathname();
-              if ($f->isDir()) { @mkdir($target, 0755, true); }
-              else { @copy($f->getPathname(), $target); }
-          }
+          rrmdir($dst);
+          rcopy($src, $dst);
       } else {
           @copy($src, $dst);
       }
   }
-  ok('Public assets copied');
 
-  // ── Step 6: Write .env ────────────────────────────────────────────────
+  // Clean up extraction temp dir
+  rrmdir($extractTo);
+  ok("Code patched ({$totalCopied} files)");
+
+  // ── Step 5: Write .env ────────────────────────────────────────────────
   info('Writing .env…');
   $appKey = 'base64:' . base64_encode(random_bytes(32));
-
   $env = <<<ENV
 APP_NAME="Mokes Infotech"
 APP_ENV=production
@@ -340,31 +273,38 @@ VITE_APP_NAME="Mokes Infotech"
 ENV;
 
   file_put_contents($appRoot . '/.env', $env);
-  ok('.env written');
+  ok('.env written (DB_CONNECTION=mysql)');
 
-  // ── Step 7: Set permissions ───────────────────────────────────────────
-  info('Setting storage permissions…');
+  // ── Step 6: Storage permissions ───────────────────────────────────────
   foreach (['storage', 'bootstrap/cache'] as $dir) {
       $path = $appRoot . '/' . $dir;
-      if (is_dir($path)) {
-          chmod($path, 0755);
-          $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS));
-          foreach ($iter as $f) { @chmod($f->getPathname(), $f->isDir() ? 0755 : 0644); }
-      }
+      if (!is_dir($path)) @mkdir($path, 0755, true);
+      @chmod($path, 0755);
   }
-  ok('Permissions set');
+  foreach (['storage/app', 'storage/app/public', 'storage/framework',
+            'storage/framework/cache', 'storage/framework/sessions',
+            'storage/framework/views', 'storage/logs'] as $dir) {
+      $path = $appRoot . '/' . $dir;
+      if (!is_dir($path)) @mkdir($path, 0755, true);
+  }
+  ok('Storage directories ready');
 
-  // ── Step 8: Bootstrap Laravel + run migrations ────────────────────────
-  info('Bootstrapping Laravel…');
+  // ── Step 7: Bootstrap Laravel + artisan commands ──────────────────────
+  info('Bootstrapping Laravel from ' . h($appRoot) . '…');
+  if (function_exists('opcache_reset')) opcache_reset();
+
+  // Delete stale caches before bootstrapping
+  foreach (glob($appRoot . '/bootstrap/cache/*.php') as $f) { @unlink($f); }
+
   require $appRoot . '/vendor/autoload.php';
-  $app = require_once $appRoot . '/bootstrap/app.php';
+  $app    = require_once $appRoot . '/bootstrap/app.php';
   $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
   foreach ([
-      ['migrate',       ['--force' => true, '--seed' => true]],
-      ['config:cache',  []],
-      ['route:cache',   []],
-      ['view:cache',    []],
+      ['migrate',      ['--force' => true, '--seed' => true]],
+      ['config:cache', []],
+      ['route:cache',  []],
+      ['view:cache',   []],
   ] as [$cmd, $args]) {
       info("php artisan {$cmd}");
       $exit = $kernel->call($cmd, $args);
@@ -373,14 +313,14 @@ ENV;
       $exit === 0 ? ok($cmd) : fail("{$cmd} exited {$exit}");
   }
 
-  // ── Step 9: Write new index.php to public_html ────────────────────────
-  info('Installing public_html/index.php…');
+  // ── Step 8: Write public_html/index.php ───────────────────────────────
+  info('Writing public_html/index.php…');
   $indexPhp = <<<'PHP'
 <?php
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 define('LARAVEL_START', microtime(true));
-$appPath = __DIR__ . '/../mokesinfotech';
+$appPath = dirname(__DIR__);
 if (file_exists($m = $appPath . '/storage/framework/maintenance.php')) require $m;
 require $appPath . '/vendor/autoload.php';
 /** @var Application $app */
@@ -388,10 +328,10 @@ $app = require_once $appPath . '/bootstrap/app.php';
 $app->handleRequest(Request::capture());
 PHP;
   file_put_contents($publicHtml . '/index.php', $indexPhp);
-  ok('index.php installed');
+  ok('index.php written (app path = home root)');
 
   echo '</div>';
-  echo '<div class="done">🎉 Installation complete! <strong>Delete this file now.</strong><br>';
+  echo '<div class="done">🎉 Patch complete! <strong>Delete this file now.</strong><br>';
   echo '<a href="/" style="color:#065f46">→ Open mokesinfotech.com</a></div>';
 
 endif; ?>
